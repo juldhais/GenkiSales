@@ -1,0 +1,118 @@
+﻿@page "/sales-order"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<h3 class="mb-5">Sales Order</h3>
+
+<div class="row mb-5">
+    <div class="col-lg-3">
+        <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" class="form-control" @bind="startDate" />
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="form-group">
+            <label>End Date</label>
+            <input type="date" class="form-control" @bind="endDate" />
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="form-group">
+            <label>Customer</label>
+            <select class="form-control" @bind="customerId">
+                <option value="">-- Select Customer --</option>
+                @foreach (var customer in customers)
+                {
+                    <option value="@customer.Id">@customer.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="hstack gap-2 mt-3">
+            <button class="btn btn-success" @onclick="ApplyFilter">Apply Filter</button>
+            <button class="btn btn-secondary" @onclick="ResetFilter">Reset</button>
+        </div>
+    </div>
+</div>
+
+<button class="btn btn-primary mb-3" @onclick="Create">Create New Sales Order</button>
+
+<table class="table table-responsive table-bordered">
+    <thead>
+        <tr>
+            <th width="100">Id</th>
+            <th width="100">Order No.</th>
+            <th width="100">Order Date</th>
+            <th width="200">Customer Name</th>
+            <th width="100">Total</th>
+            <th width="100">Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var salesOrder in salesOrders)
+        {
+            <tr>
+                <td>@salesOrder.Id</td>
+                <td>@salesOrder.OrderNumber</td>
+                <td>@salesOrder.OrderDate.ToString("dd/MM/yyyy")</td>
+                <td>@salesOrder.CustomerName</td>
+                <td>@salesOrder.Total.ToString("N0")</td>
+                <td>
+                    <button class="btn btn-info" @onclick="() => Update(salesOrder)">Update</button>
+                    <button class="btn btn-danger" @onclick="() => Delete(salesOrder)">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<SalesOrderResponse> salesOrders = [];
+    private List<CustomerResponse> customers = [];
+
+    private DateTime startDate = DateTime.Today;
+    private DateTime endDate = DateTime.Today;
+    private Guid? customerId = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await Http.GetFromJsonAsync<List<CustomerResponse>>("api/customers") ?? [];
+        await ApplyFilter();
+    }
+
+    private async Task ApplyFilter()
+    {
+        var url = $"api/sales-orders?startDate={startDate}&endDate={endDate}&customerId={customerId}";
+        salesOrders = await Http.GetFromJsonAsync<List<SalesOrderResponse>>(url) ?? [];
+    }
+
+    private async Task ResetFilter()
+    {
+        startDate = DateTime.Today;
+        endDate = DateTime.Today;
+        customerId = null;
+        await ApplyFilter();
+    }
+
+    private void Create()
+    {
+        NavigationManager.NavigateTo("sales-order/create");
+    }
+
+    private void Update(SalesOrderResponse salesOrder)
+    {
+        NavigationManager.NavigateTo($"sales-order/update/{salesOrder.Id}");
+    }
+
+    private async void Delete(SalesOrderResponse salesOrder)
+    {
+        await Http.DeleteAsync($"api/sales-orders/{salesOrder.Id}");
+        salesOrders.Remove(salesOrder);
+        StateHasChanged();
+    }
+}

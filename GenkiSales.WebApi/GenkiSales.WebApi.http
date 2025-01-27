@@ -1,0 +1,6 @@
+@GenkiSales.WebApi_HostAddress = http://localhost:5196
+
+GET {{GenkiSales.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

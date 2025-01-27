@@ -1,0 +1,77 @@
+﻿@page "/customer/update/{Id:guid}"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<h3 class="mb-5">Update Customer</h3>
+
+<div class="col-12 col-lg-6">
+    <div class="vstack gap-3">
+        <div class="form-group">
+            <label>Name</label>
+            <input class="form-control" @bind="customer.Name" />
+        </div>
+
+        <div class="form-group">
+            <label>Address</label>
+            <input class="form-control" @bind="customer.Address" />
+        </div>
+
+        <div class="form-group">
+            <label>Phone</label>
+            <input class="form-control" @bind="customer.Phone" />
+        </div>
+
+        <div class="form-group">
+            <label>Email</label>
+            <input class="form-control" @bind="customer.Email" />
+        </div>
+
+        <div class="hstack gap-2">
+            <button class="btn btn-primary px-5" @onclick="Save">Save</button>
+            <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-danger">
+                @errorMessage
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private CustomerRequest customer = new();
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Http.GetFromJsonAsync<CustomerResponse>($"api/customers/{Id}") ?? new();
+        customer.Name = response.Name;
+        customer.Address = response.Address;
+        customer.Phone = response.Phone;
+        customer.Email = response.Email;
+    }
+
+    private async Task Save()
+    {
+        var response = await Http.PutAsJsonAsync($"api/customers/{Id}", customer);
+
+        if (response.IsSuccessStatusCode)
+        {
+            NavigationManager.NavigateTo("customer");
+        }
+        else
+        {
+            errorMessage = await response.Content.ReadAsStringAsync();
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("customer");
+    }
+}

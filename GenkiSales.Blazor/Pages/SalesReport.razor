@@ -1,0 +1,114 @@
+﻿@page "/sales-report"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<h3 class="mb-5">Sales Report</h3>
+
+<div class="row mb-5">
+    <div class="col-lg-2">
+        <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" class="form-control" @bind="startDate" />
+        </div>
+    </div>
+
+    <div class="col-lg-2">
+        <div class="form-group">
+            <label>End Date</label>
+            <input type="date" class="form-control" @bind="endDate" />
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="form-group">
+            <label>Customer</label>
+            <select class="form-control" @bind="customerId">
+                <option value="">-- Select Customer --</option>
+                @foreach (var customer in customers)
+                {
+                    <option value="@customer.Id">@customer.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="form-group">
+            <label>Product</label>
+            <select class="form-control" @bind="productId">
+                <option value="">-- Select Product --</option>
+                @foreach (var product in products)
+                {
+                    <option value="@product.Id">@product.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="hstack gap-2 mt-3">
+            <button class="btn btn-success" @onclick="ApplyFilter">Apply Filter</button>
+            <button class="btn btn-secondary" @onclick="ResetFilter">Reset</button>
+        </div>
+    </div>
+</div>
+
+<table class="table table-responsive table-breported">
+    <thead>
+        <tr>
+            <th width="80">Order No.</th>
+            <th width="80">Order Date</th>
+            <th width="200">Customer Name</th>
+            <th width="200">Product Name</th>
+            <th width="80">Quantity</th>
+            <th width="80">Price</th>
+            <th width="80">Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var salesReport in salesReports)
+        {
+            <tr>
+                <td>@salesReport.OrderNumber</td>
+                <td>@salesReport.OrderDate.ToString("dd/MM/yyyy")</td>
+                <td>@salesReport.CustomerName</td>
+                <td>@salesReport.ProductName</td>
+                <td>@salesReport.Quantity.ToString("N2")</td>
+                <td>@salesReport.Price.ToString("N0")</td>
+                <td>@salesReport.Subtotal.ToString("N0")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<SalesReportResponse> salesReports = [];
+    private List<CustomerResponse> customers = [];
+    private List<ProductResponse> products = [];
+
+    private DateTime startDate = DateTime.Today;
+    private DateTime endDate = DateTime.Today;
+    private Guid? customerId = null;
+    private Guid? productId = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await Http.GetFromJsonAsync<List<CustomerResponse>>("api/customers") ?? [];
+        products = await Http.GetFromJsonAsync<List<ProductResponse>>("api/products") ?? [];
+    }
+
+    private async Task ApplyFilter()
+    {
+        var url = $"api/sales-reports?startDate={startDate}&endDate={endDate}&customerId={customerId}&productId={productId}";
+        salesReports = await Http.GetFromJsonAsync<List<SalesReportResponse>>(url) ?? [];
+    }
+
+    private async Task ResetFilter()
+    {
+        startDate = DateTime.Today;
+        endDate = DateTime.Today;
+        customerId = null;
+        productId = null;
+        await ApplyFilter();
+    }
+}

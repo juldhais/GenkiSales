@@ -1,0 +1,161 @@
+﻿@page "/sales-order/update/{Id:guid}"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<h3 class="mb-5">Update Sales Order</h3>
+
+<div class="row mb-3">
+    <div class="col-lg-3">
+        <div class="form-group">
+            <label>Order No.</label>
+            <input class="form-control" disabled value="@orderNumber" />
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="form-group">
+            <label>Order Date</label>
+            <input type="date" class="form-control" @bind="salesOrder.OrderDate" />
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="form-group">
+            <label>Customer</label>
+            <select class="form-control" @bind="salesOrder.CustomerId">
+                <option value="">-- Select Customer --</option>
+                @foreach (var customer in customers)
+                {
+                    <option value="@customer.Id">@customer.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+</div>
+
+<button class="btn btn-info mb-3" @onclick="AddDetail">Add Detail</button>
+
+<table class="table table-responsive table-bordered mb-3">
+    <thead>
+        <tr>
+            <th width="200">Product</th>
+            <th width="100">Quantity</th>
+            <th width="100">Price</th>
+            <th width="100">Subtotal</th>
+            <th width="100">Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var detail in salesOrder.Details)
+        {
+            <tr>
+                <td>
+                    <select class="form-control" @bind="detail.ProductId" @onblur="() => ProductChange(detail)">
+                        <option value="">-- Select Product --</option>
+                        @foreach (var product in products)
+                        {
+                            <option value="@product.Id">@product.Name</option>
+                        }
+                    </select>
+                </td>
+                <td><input type="number" class="form-control" @bind="detail.Quantity" /></td>
+                <td><input type="number" class="form-control" @bind="detail.Price" /></td>
+                <td>@((detail.Quantity * detail.Price).ToString("N0"))</td>
+                <td><button class="btn btn-danger" @onclick="() => DeleteDetail(detail)">Delete</button></td>
+            </tr>
+        }
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3" class="text-end fw-bold">Total</td>
+            <td class="fw-bold">@GetTotal().ToString("N0")</td>
+            <td></td>
+        </tr>
+    </tfoot>
+</table>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger mb-3">
+        @errorMessage
+    </div>
+}
+
+<div class="hstack gap-2">
+    <button class="btn btn-primary px-5" @onclick="Save">Save</button>
+    <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private SalesOrderRequest salesOrder = new();
+    private List<CustomerResponse> customers = [];
+    private List<ProductResponse> products = [];
+    private string? errorMessage;
+    private string? orderNumber;
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await Http.GetFromJsonAsync<List<CustomerResponse>>("api/customers") ?? [];
+        products = await Http.GetFromJsonAsync<List<ProductResponse>>("api/products") ?? [];
+        var response = await Http.GetFromJsonAsync<SalesOrderResponse>($"api/sales-orders/{Id}") ?? new();
+ 
+        salesOrder.OrderDate = response.OrderDate;
+        salesOrder.CustomerId = response.CustomerId;
+        salesOrder.Details = response.Details.Select(x => new SalesOrderDetailRequest
+        { 
+            ProductId = x.ProductId,
+            Quantity = x.Quantity,
+            Price = x.Price
+        }).ToList();
+
+        orderNumber = response.OrderNumber;
+    }
+
+    private async Task Save()
+    {
+        var response = await Http.PutAsJsonAsync($"api/sales-orders/{Id}", salesOrder);
+
+        if (response.IsSuccessStatusCode)
+        {
+            NavigationManager.NavigateTo("sales-order");
+        }
+        else
+        {
+            errorMessage = await response.Content.ReadAsStringAsync();
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("sales-order");
+    }
+
+    private void AddDetail()
+    {
+        salesOrder.Details.Add(new());
+        StateHasChanged();
+    }
+
+    private void DeleteDetail(SalesOrderDetailRequest detail)
+    {
+        salesOrder.Details.Remove(detail);
+        StateHasChanged();
+    }
+
+    private void ProductChange(SalesOrderDetailRequest detail)
+    {
+        var product = products.FirstOrDefault(x => x.Id == detail.ProductId);
+        if (product != null)
+        {
+            detail.Price = product.Price;
+        }
+    }
+
+    private decimal GetTotal()
+    {
+        return salesOrder.Details.Sum(x => x.Quantity * x.Price);
+    }
+}

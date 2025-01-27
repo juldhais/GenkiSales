@@ -1,0 +1,58 @@
+﻿@page "/product"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<h3 class="mb-5">Product</h3>
+
+<button class="btn btn-primary mb-3" @onclick="Create">Create New Product</button>
+
+<table class="table table-responsive table-bordered">
+    <thead>
+        <tr>
+            <th width="100">Id</th>
+            <th width="200">Name</th>
+            <th width="100">Price</th>
+            <th width="100">Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var product in products)
+        {
+            <tr>
+                <td>@product.Id</td>
+                <td>@product.Name</td>
+                <td>@product.Price.ToString("N0")</td>
+                <td>
+                    <button class="btn btn-info" @onclick="() => Update(product)">Update</button>
+                    <button class="btn btn-danger" @onclick="() => Delete(product)">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<ProductResponse> products = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await Http.GetFromJsonAsync<List<ProductResponse>>("api/products") ?? [];
+    }
+
+    private void Create()
+    {
+        NavigationManager.NavigateTo("product/create");
+    }
+
+    private void Update(ProductResponse product)
+    {
+        NavigationManager.NavigateTo($"product/update/{product.Id}");
+    }
+
+    private async void Delete(ProductResponse product)
+    {
+        await Http.DeleteAsync($"api/products/{product.Id}");
+        products.Remove(product);
+        StateHasChanged();
+    }
+}
