@@ -1,0 +1,81 @@
+﻿@page "/sales-order/print/{Id:guid}"
+@layout EmptyLayout
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<div class="hstack gap-2 d-print-none mx-5 my-5">
+    <button class="btn btn-primary px-3" @onclick="Print">Print</button>
+    <button class="btn btn-secondary px-2" @onclick="Close">Close</button>
+</div>
+
+
+<div id="print-sales-order" class="container">
+    <h2 class="text-center">Sales Order</h2>
+
+    <table class="table table-bordered mt-5">
+        <thead class="table-light">
+            <tr>
+                <th width="100">Order No.</th>
+                <th width="100">Order Date</th>
+                <th width="300">Customer</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>@salesOrder.OrderNumber</td>
+                <td>@salesOrder.OrderDate.ToString("dd/MM/yyyy")</td>
+                <td>@salesOrder.CustomerName</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table class="table table-bordered mt-5">
+        <thead class="table-light">
+            <tr>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var detail in salesOrder.Details)
+            {
+                <tr>
+                    <td>@detail.ProductName</td>
+                    <td>@detail.Quantity.ToString("N2")</td>
+                    <td>@detail.Price.ToString("N0")</td>
+                    <td>@detail.Subtotal.ToString("N0")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="row mt-3">
+        <div class="col text-end">
+            <h5>Total: <strong>@salesOrder.Total.ToString("N0")</strong></h5>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private SalesOrderResponse salesOrder = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        salesOrder = await Http.GetFromJsonAsync<SalesOrderResponse>($"api/sales-orders/{Id}") ?? new();
+    }
+
+    private async Task Print()
+    {
+        await JSRuntime.InvokeVoidAsync("window.print");
+    }
+
+    private async Task Close()
+    {
+        await JSRuntime.InvokeVoidAsync("window.close");
+    }
+}

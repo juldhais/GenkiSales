@@ -50,7 +50,7 @@
             <th width="100">Order Date</th>
             <th width="200">Customer Name</th>
             <th width="100">Total</th>
-            <th width="100">Action</th>
+            <th width="150">Action</th>
         </tr>
     </thead>
     <tbody>
@@ -63,6 +63,7 @@
                 <td>@salesOrder.CustomerName</td>
                 <td>@salesOrder.Total.ToString("N0")</td>
                 <td>
+                    <a class="btn btn-success" href="/sales-order/print/@salesOrder.Id" target="_blank">Print</a>
                     <button class="btn btn-info" @onclick="() => Update(salesOrder)">Update</button>
                     <button class="btn btn-danger" @onclick="() => Delete(salesOrder)">Delete</button>
                 </td>
